@@ -1,0 +1,18 @@
+niche_id: fashion_pilot
+active: true
+schedule: "0 9,15,21 * * *" # 3x per day
+scraper:
+  category: "Women's Fashion"
+  min_sales_30d: 500
+  keywords: ["dress", "skirt", "outfit"]
+ai:
+  tone: "energetic, trendy"
+  language: "id" # Indonesian
+  system_prompt_ref: "prompts/fashion_v1.txt"
+editor:
+  font: "Outfit-Bold"
+  music_style: "lofi-beats"
+  overlay_color: "#FF0055"
+publisher:
+  account_name: "fashion_trends_id"
+  session_path: "sessions/fashion_pilot.json"

@@ -1,0 +1,6 @@
+google-generativeai
+playwright
+moviepy
+pyyaml
+python-dotenv
+apscheduler
