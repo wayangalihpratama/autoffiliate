@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y \
     libcairo2 \
     libasound2 \
     curl \
+    imagemagick \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory

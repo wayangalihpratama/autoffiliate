@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from src.database import Database
 from src.scraper.kalodata import KalodataScraper
 from src.intelligence.gemini_engine import GeminiEngine
+from src.editor.moviepy_editor import MoviePyEditor
+from src.utils.downloader import ImageDownloader
 
 # Configure logging
 logging.basicConfig(
@@ -20,6 +22,8 @@ class AutoffiliateRunner:
         self.db = Database()
         self.scraper = KalodataScraper()
         self.intelligence = GeminiEngine()
+        self.editor = MoviePyEditor()
+        self.downloader = ImageDownloader()
         self.niche_dir = "config/niches"
 
     def run(self):
@@ -45,9 +49,9 @@ class AutoffiliateRunner:
         products = self.scraper.scrape_trending_products(config, limit=5)
         logger.info(f"Scraped {len(products)} products for {niche_id}")
 
-        # Step 2: Intelligence & Persistence
+        # Step 2 & 3: Intelligence & Editor
         for p in products:
-            # Check if we already have this product and its content
+            # Add product to DB
             product_id = self.db.add_product(
                 niche_id=niche_id,
                 source_url=p["source_url"],
@@ -67,9 +71,32 @@ class AutoffiliateRunner:
                 script_data = self.intelligence.generate_script(p, config)
                 if script_data:
                     content_id = self.db.add_content(product_id, script_data)
-                    logger.info(
-                        f"Script generated and saved (ID: {content_id})"
+                    logger.info(f"Script generated (ID: {content_id})")
+
+                    # Download images
+                    # If p['image_urls'] is a string, split it or wrap in list
+                    image_urls = (
+                        [p["image_urls"]]
+                        if isinstance(p["image_urls"], str)
+                        else p["image_urls"]
                     )
+                    image_paths = self.downloader.download_images(
+                        image_urls, product_id
+                    )
+
+                    # Assemble Video
+                    if image_paths:
+                        video_name = f"prod_{product_id}_{niche_id}"
+                        video_path = self.editor.assemble_video(
+                            script_data, image_paths, video_name
+                        )
+                        if video_path:
+                            self.db.update_content_video_path(
+                                content_id, video_path
+                            )
+                            logger.info(
+                                f"Video produced successfully: {video_path}"
+                            )
             else:
                 logger.debug(f"Product already exists: {p['title']}")
 

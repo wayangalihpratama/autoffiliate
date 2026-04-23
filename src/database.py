@@ -110,3 +110,15 @@ class Database:
             )
             conn.commit()
             return cursor.lastrowid
+
+    def update_content_video_path(self, content_id, video_path):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE contents SET video_path = ?, status = 'READY'
+                WHERE id = ?
+            """,
+                (video_path, content_id),
+            )
+            conn.commit()
