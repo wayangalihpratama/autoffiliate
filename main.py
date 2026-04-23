@@ -4,11 +4,11 @@ import logging
 import json
 from dotenv import load_dotenv
 from src.database import Database
-from src.scraper.kalodata import KalodataScraper
+from src.processor.universal_parser import UniversalProcessor
 from src.intelligence.gemini_engine import GeminiEngine
 from src.editor.moviepy_editor import MoviePyEditor
 from src.utils.downloader import ImageDownloader
-from src.publisher.tiktok_publisher import TikTokPublisher
+from src.output.package_generator import PackageGenerator
 
 # Configure logging
 logging.basicConfig(
@@ -21,15 +21,15 @@ class AutoffiliateRunner:
     def __init__(self):
         load_dotenv()
         self.db = Database()
-        self.scraper = KalodataScraper()
+        self.processor = UniversalProcessor()
         self.intelligence = GeminiEngine()
         self.editor = MoviePyEditor()
         self.downloader = ImageDownloader()
-        self.publisher = TikTokPublisher()
+        self.package_gen = PackageGenerator()
         self.niche_dir = "config/niches"
 
     def run(self):
-        logger.info("Autoffiliate engine starting...")
+        logger.info("Autoffiliate Semi-Auto engine starting...")
 
         if not os.path.exists(self.niche_dir):
             logger.error(f"Niche directory {self.niche_dir} not found.")
@@ -47,25 +47,27 @@ class AutoffiliateRunner:
         niche_id = config.get("niche_id")
         logger.info(f"Processing niche: {niche_id}")
 
-        # Step 1: Scrape (or use manual products)
-        if config.get("manual_products"):
-            logger.info("Using manual product list from configuration.")
-            products = config.get("manual_products")
-        else:
-            products = self.scraper.scrape_trending_products(config, limit=5)
+        # Step 1: Process Kalodata Exports (Semi-Auto)
+        products = self.processor.get_all_products(limit=10)
+
+        if not products:
+            logger.warning(
+                f"No products found in data/input for niche {niche_id}"
+            )
+            return
 
         logger.info(f"Processing {len(products)} products for {niche_id}")
 
-        # Step 2, 3 & 4: Intelligence, Editor & Publisher
+        # Step 2, 3 & 4: Intelligence, Editor & Package Generation
         for p in products:
-            # Add product to DB
+            # Add product to DB (deduplication happens here)
             product_id = self.db.add_product(
                 niche_id=niche_id,
-                source_url=p["source_url"],
+                source_url=p.get("source_url", "local"),
                 title=p["title"],
                 price=p["price"],
-                sales_30d=p["sales_30d"],
-                image_urls=p["image_urls"],
+                sales_30d=p.get("sales_30d", "0"),
+                image_urls=p.get("image_urls", ""),
                 raw_data=json.dumps(p),
             )
 
@@ -80,15 +82,22 @@ class AutoffiliateRunner:
                     content_id = self.db.add_content(product_id, script_data)
                     logger.info(f"Script generated (ID: {content_id})")
 
-                    # Download images
-                    image_urls = (
-                        [p["image_urls"]]
-                        if isinstance(p["image_urls"], str)
-                        else p["image_urls"]
-                    )
-                    image_paths = self.downloader.download_images(
-                        image_urls, product_id
-                    )
+                    # Download images (if URLs provided)
+                    image_urls = p.get("image_urls", "")
+                    if image_urls and image_urls != "nan":
+                        image_urls = (
+                            [image_urls]
+                            if isinstance(image_urls, str)
+                            else image_urls
+                        )
+                        image_paths = self.downloader.download_images(
+                            image_urls, product_id
+                        )
+                    else:
+                        logger.warning(
+                            f"No image URLs for {p['title']}, skipping video generation."
+                        )
+                        continue
 
                     # Assemble Video
                     if image_paths:
@@ -103,21 +112,21 @@ class AutoffiliateRunner:
                             )
                             logger.info(f"Video produced: {video_path}")
 
-                            # Step 4: Publish (if enabled in config)
-                            if config.get("auto_post", False):
-                                success = self.publisher.publish_video(
-                                    video_path=video_path,
-                                    caption=script_data.get(
-                                        "tts_text", p["title"]
-                                    ),
-                                    hashtags=config.get("hashtags", []),
+                            # Prepare Package for Manual Posting
+                            package_path = self.package_gen.prepare_package(
+                                product_title=p["title"],
+                                video_path=video_path,
+                                script_data=script_data,
+                                niche_id=niche_id,
+                            )
+                            if package_path:
+                                logger.info(
+                                    f"Package created for manual post: {package_path}"
                                 )
-                                if success:
-                                    logger.info(
-                                        f"Published to TikTok: {video_path}"
-                                    )
             else:
-                logger.debug(f"Product already exists: {p['title']}")
+                logger.debug(
+                    f"Product already exists or failed to save: {p['title']}"
+                )
 
 
 if __name__ == "__main__":

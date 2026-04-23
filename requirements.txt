@@ -5,3 +5,5 @@ pyyaml
 python-dotenv
 apscheduler
 playwright-stealth
+pandas
+openpyxl
