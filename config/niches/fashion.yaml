@@ -1,18 +1,15 @@
-niche_id: fashion_pilot
+niche_id: rekomendasi_outfit
 active: true
-schedule: "0 9,15,21 * * *" # 3x per day
+auto_post: true # Sekarang otomatis posting ke TikTok
 scraper:
   category: "Women's Fashion"
+  keywords: ["tunik", "dress", "outfit viral", "racun shopee"]
   min_sales_30d: 500
-  keywords: ["dress", "skirt", "outfit"]
 ai:
-  tone: "energetic, trendy"
-  language: "id" # Indonesian
-  system_prompt_ref: "prompts/fashion_v1.txt"
-editor:
-  font: "Outfit-Bold"
-  music_style: "lofi-beats"
-  overlay_color: "#FF0055"
+  tone: "friendly, helpful, enthusiastic"
+  language: "id" # Bahasa Indonesia
+  system_prompt_ref: "config/prompts/fashion_v1.txt"
+hashtags: ["#RekomendasiOutfit", "#RacunTikTok", "#OutfitViral", "#FashionLokal", "#OOTDIndo"]
 publisher:
-  account_name: "fashion_trends_id"
-  session_path: "sessions/fashion_pilot.json"
+  account_name: "RekomendasiOutfit"
+  session_path: "sessions/tiktok.json"

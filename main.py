@@ -47,9 +47,14 @@ class AutoffiliateRunner:
         niche_id = config.get("niche_id")
         logger.info(f"Processing niche: {niche_id}")
 
-        # Step 1: Scrape
-        products = self.scraper.scrape_trending_products(config, limit=5)
-        logger.info(f"Scraped {len(products)} products for {niche_id}")
+        # Step 1: Scrape (or use manual products)
+        if config.get("manual_products"):
+            logger.info("Using manual product list from configuration.")
+            products = config.get("manual_products")
+        else:
+            products = self.scraper.scrape_trending_products(config, limit=5)
+
+        logger.info(f"Processing {len(products)} products for {niche_id}")
 
         # Step 2, 3 & 4: Intelligence, Editor & Publisher
         for p in products:

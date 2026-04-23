@@ -13,8 +13,11 @@ class GeminiEngine:
         if not self.api_key:
             logger.warning("GEMINI_API_KEY not found in environment.")
 
-        genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel("gemini-2.0-flash")
+        if self.api_key:
+            genai.configure(api_key=self.api_key)
+            self.model = genai.GenerativeModel("gemini-2.0-flash")
+        else:
+            self.model = None
 
     def generate_script(self, product_data: Dict, niche_config: Dict) -> Dict:
         """
@@ -36,6 +39,19 @@ class GeminiEngine:
             tone=niche_config.get("tone", "neutral"),
             language=niche_config.get("language", "en"),
         )
+
+        # Mock Mode
+        if not self.model or niche_config.get("mock"):
+            logger.info("Mock mode active: returning default script.")
+            return {
+                "tts_text": f"Dapatkan {product_data.get('title')} sekarang dengan harga terbaik!",
+                "overlay_texts": [
+                    "Produk Viral TikTok!",
+                    f"Hanya {product_data.get('price')}",
+                    "Stok Terbatas!",
+                ],
+                "visual_cues": "Tampilkan gambar produk dengan transisi halus.",
+            }
 
         try:
             logger.info(f"Generating script for: {product_data.get('title')}")
