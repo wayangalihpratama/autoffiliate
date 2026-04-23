@@ -110,10 +110,10 @@ Transforms raw product data into persuasive marketing scripts.
 Assembles final video assets.
 - **Input:** Product images/videos + Script + Niche assets.
 - **Logic:**
-    - Randomize clips/transitions.
-    - Overlay dynamic text.
-    - Sync background music.
-- **Output:** Unique MP4 file.
+    - Use MoviePy 2.x for high-performance assembly.
+    - Automatic image resizing for 9:16 vertical format.
+    - Dynamic text overlay rendering with ImageMagick.
+- **Output:** Unique MP4 file in `data/videos/`.
 
 ### 3.5 TikTok Publisher
 Handles the final upload and description.
@@ -123,8 +123,8 @@ Handles the final upload and description.
 ## 4. Data Architecture
 
 ### 4.1 Schema (SQLite)
-- **`products`**: `id`, `niche_id`, `source_url`, `raw_data`, `created_at`
-- **`contents`**: `id`, `product_id`, `script`, `video_path`, `status` (PENDING, RENDERED, POSTED)
+- **`products`**: `id`, `niche_id`, `source_url`, `title`, `price`, `sales_30d`, `image_urls`, `raw_data`, `created_at`
+- **`contents`**: `id`, `product_id`, `script`, `video_path`, `status` (PENDING, READY, POSTED)
 - **`post_history`**: `id`, `content_id`, `tiktok_url`, `views`, `posted_at`
 
 ## 5. Security & Safety

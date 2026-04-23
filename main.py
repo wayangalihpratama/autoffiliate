@@ -8,6 +8,7 @@ from src.scraper.kalodata import KalodataScraper
 from src.intelligence.gemini_engine import GeminiEngine
 from src.editor.moviepy_editor import MoviePyEditor
 from src.utils.downloader import ImageDownloader
+from src.publisher.tiktok_publisher import TikTokPublisher
 
 # Configure logging
 logging.basicConfig(
@@ -24,6 +25,7 @@ class AutoffiliateRunner:
         self.intelligence = GeminiEngine()
         self.editor = MoviePyEditor()
         self.downloader = ImageDownloader()
+        self.publisher = TikTokPublisher()
         self.niche_dir = "config/niches"
 
     def run(self):
@@ -49,7 +51,7 @@ class AutoffiliateRunner:
         products = self.scraper.scrape_trending_products(config, limit=5)
         logger.info(f"Scraped {len(products)} products for {niche_id}")
 
-        # Step 2 & 3: Intelligence & Editor
+        # Step 2, 3 & 4: Intelligence, Editor & Publisher
         for p in products:
             # Add product to DB
             product_id = self.db.add_product(
@@ -74,7 +76,6 @@ class AutoffiliateRunner:
                     logger.info(f"Script generated (ID: {content_id})")
 
                     # Download images
-                    # If p['image_urls'] is a string, split it or wrap in list
                     image_urls = (
                         [p["image_urls"]]
                         if isinstance(p["image_urls"], str)
@@ -90,13 +91,26 @@ class AutoffiliateRunner:
                         video_path = self.editor.assemble_video(
                             script_data, image_paths, video_name
                         )
+
                         if video_path:
                             self.db.update_content_video_path(
                                 content_id, video_path
                             )
-                            logger.info(
-                                f"Video produced successfully: {video_path}"
-                            )
+                            logger.info(f"Video produced: {video_path}")
+
+                            # Step 4: Publish (if enabled in config)
+                            if config.get("auto_post", False):
+                                success = self.publisher.publish_video(
+                                    video_path=video_path,
+                                    caption=script_data.get(
+                                        "tts_text", p["title"]
+                                    ),
+                                    hashtags=config.get("hashtags", []),
+                                )
+                                if success:
+                                    logger.info(
+                                        f"Published to TikTok: {video_path}"
+                                    )
             else:
                 logger.debug(f"Product already exists: {p['title']}")
 
