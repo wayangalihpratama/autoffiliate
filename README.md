@@ -1,12 +1,12 @@
-# Autoffiliate 🚀
+# Autoffiliate 🚀 (Semi-Auto Edition)
 
-Automated TikTok Affiliate content management system. It scrapes trending products, generates viral scripts using Gemini 2.0, assembles videos via MoviePy, and publishes them to TikTok autonomously.
+Semi-automated TikTok Affiliate content engine. It transforms product exports (TCC or Kalodata) into high-quality videos using Gemini 2.0 and MoviePy, preparing everything for manual posting to ensure maximum account safety.
 
 ## 🛠️ Tech Stack
 - **Core:** Python 3.11+
-- **AI:** Gemini 2.0 Flash
+- **AI:** Gemini 2.0 Flash (Scripting)
 - **Video Editing:** MoviePy 2.x / FFmpeg
-- **Automation:** Playwright / Playwright-Stealth
+- **Data Parsing:** Pandas / Openpyxl (Universal Parser)
 - **Infrastructure:** Docker & Docker Compose
 
 ## 🏗️ Getting Started
@@ -14,54 +14,60 @@ Automated TikTok Affiliate content management system. It scrapes trending produc
 ### 1. Prerequisites
 - Docker & Docker Compose
 - Google Gemini API Key ([Get it here](https://aistudio.google.com/app/apikey))
-- TikTok Account & Kalodata Account
 
 ### 2. Initial Setup
 1. Clone the repository.
 2. Create and fill your `.env` file:
    ```env
    GEMINI_API_KEY=your_key_here
-   KALODATA_EMAIL=your_email
-   KALODATA_PASSWORD=your_password
    ```
 3. Build the Docker environment:
    ```bash
    ./dc.sh build
    ```
 
-### 3. Session Capture (Crucial)
-To bypass bot detection on TikTok and Kalodata, you must capture a manual session once. Run these commands **locally** (on your host machine, not in Docker):
+## 🔄 The Semi-Auto Workflow
 
+### Step 1: Sourcing Data (Free Method)
+1. Open [TikTok Creative Center - Top Products](https://ads.tiktok.com/business/creativecenter/inspiration/top-products/pc/en?region=ID).
+2. Filter by Category and Region (Indonesia).
+3. Open **Browser Console** (Press `F12` or `Ctrl+Shift+J`).
+4. Copy the contents of `scripts/tcc_exporter.js` from this project.
+5. Paste it into the Console and press **Enter**.
+6. A CSV file will be downloaded automatically.
+7. Place the CSV file into `data/input/`.
+
+*Note: You can also use paid exports from Kalodata or manual Excel files. Our Universal Parser handles them all.*
+
+### Step 2: Generation (Automated)
+Run the engine to process the files and generate videos:
 ```bash
-# Setup local environment for capture
-python3 -m venv venv
-source venv/bin/activate
-pip install playwright playwright-stealth
-playwright install chromium
-
-# Capture sessions (Log in manually in the browser that opens)
-python3 scripts/capture_session.py tiktok
-python3 scripts/capture_session.py kalodata
+./dc.sh up
 ```
+The system will:
+- Parse all files in `data/input/` (supports TCC, Kalodata, etc.).
+- Use Gemini to write viral scripts based on product titles.
+- Download product images.
+- Render unique videos.
+- Organize everything into "Post Packages".
 
-### 4. Running the Engine
-Once sessions are saved in `sessions/`, you can run the full automation pipeline:
+### Step 3: Posting (Manual)
+1. Navigate to `data/output/{date}/`.
+2. Find the folder for your product.
+3. Use the `video.mp4` and `caption.txt` provided to post manually on TikTok.
 
-```bash
-./dc.sh run app python3 main.py
-```
-
-## 📂 Configuration
-- **Niches:** Edit `config/niches/fashion.yaml` to change keywords, categories, and posting schedules.
-- **Prompts:** Customize AI script behavior in `config/prompts/`.
-- **Manual Mode:** If you want to use specific products without scraping, add `manual_products` to your niche YAML.
+## 📂 Directory Structure
+- `data/input/`: Place your TCC or Kalodata CSV/Excel files here.
+- `data/output/`: Your ready-to-post videos and captions will appear here.
+- `scripts/`: Contains the `tcc_exporter.js` browser script.
+- `config/niches/`: Configure niche-specific settings (tone, language, hashtags).
 
 ## 📜 Documentation
 - [Low-Level Design (LLD)](docs/LLD.md)
+- [MVP Specification](docs/AUTOFFILIATE_MVP.md)
 - [Sprint Plan](agent_docs/sprint-plan.md) (Local)
 
-## ⚠️ Known Issues & Bot Detection
-Kalodata and TikTok have strong bot protections. If automation fails:
-1. Refresh your sessions using `capture_session.py`.
-2. Check `data/debug/` for screenshots of the failure.
-3. Consider using `manual_products` in your config for 100% reliable posting.
+## ⚠️ Advantages of Semi-Auto
+- **100% Free Riset**: Using TCC instead of expensive paid tools.
+- **100% Safety**: No automated login/posting means zero risk of bot detection bans.
+- **High Efficiency**: System handles the 30-minute creative tasks (scripting/editing).

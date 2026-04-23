@@ -1,157 +1,106 @@
-# Low-Level Design (LLD): Autoffiliate
+# Low-Level Design (LLD): Autoffiliate (Semi-Auto)
 
 ## 1. System Overview
-Autoffiliate is a modular Python-based automation engine designed to orchestrate the TikTok Affiliate lifecycle. The system is built around a pluggable pipeline architecture that supports multiple niches through configuration.
+Autoffiliate is a modular Python-based engine designed to automate the video generation phase of the TikTok Affiliate lifecycle. In this **Semi-Auto** configuration, data sourcing and final posting are handled by a human operator to maximize account safety and data accuracy.
 
 ### 1.1 Directory Structure
 ```text
 .
 ├── config/
-│   ├── niches/          # YAML files for each niche (e.g., fashion.yaml)
+│   ├── niches/          # YAML files for each niche
 │   └── prompts/         # System instructions for Gemini
-├── sessions/            # TikTok session cookies/data
 ├── data/
+│   ├── input/           # Human-provided Excel/CSV files from Kalodata
+│   ├── assets/          # Downloaded/Local product assets
+│   ├── videos/          # Generated ready-to-post videos
 │   └── database.sqlite  # State tracking
 ├── src/
-│   ├── scraper/         # Kalodata scraping logic
+│   ├── processor/       # CSV/Excel parsing and data validation
 │   ├── intelligence/    # Gemini 2.0 script generation
 │   ├── editor/          # MoviePy/FFmpeg assembly
-│   └── publisher/       # TikTok posting automation
+│   └── output/          # Preparing captions and metadata for manual post
 ├── compose.yaml
 ├── dc.sh
 └── main.py              # Entry point (Runner)
 ```
 
-### 1.2 High-Level Architecture
+### 1.2 High-Level Architecture (Semi-Auto)
 ```mermaid
 graph TD
-    subgraph "Core Engine"
-        Runner[Main Scheduler]
-        Registry[Niche Registry]
+    subgraph "Human Operator"
+        Kalodata[Kalodata Export]
+        ManualPost[Manual TikTok Upload]
     end
 
-    subgraph "Pipeline Modules"
-        Scraper[Product Scraper - Kalodata]
+    subgraph "Core Engine"
+        Runner[Main Scheduler]
+        Processor[Data Processor - CSV/Excel]
         AI[Intelligence Engine - Gemini 2.0]
         Editor[Video Editor - MoviePy/FFmpeg]
-        Publisher[TikTok Publisher]
+        OutputGen[Output Generator]
     end
 
     Database[(SQLite - State Tracking)]
 
-    Runner --> Registry
-    Runner --> Scraper
-    Scraper --> AI
+    Kalodata -->|Excel/CSV| Processor
+    Processor --> AI
     AI --> Editor
-    Editor --> Publisher
+    Editor --> OutputGen
+    OutputGen -->|MP4 + Caption| ManualPost
 
-    Scraper -.-> Database
+    Processor -.-> Database
     AI -.-> Database
-    Publisher -.-> Database
+    OutputGen -.-> Database
 ```
 
 ## 2. Tech Stack Selection
 
 | Component | Choice | Rationale |
 |-----------|--------|-----------|
-| **Language** | Python 3.11+ | Superior AI SDKs, scraping libraries, and media processing. |
-| **AI Reasoning** | Gemini 2.0 | Advanced multimodal capabilities and high reasoning for script variety. |
+| **Language** | Python 3.11+ | Superior AI SDKs and media processing. |
+| **Data Parsing** | Pandas / Openpyxl | Robust handling of Excel/CSV formats. |
+| **AI Reasoning** | Gemini 2.0 | Advanced multimodal capabilities for script generation. |
 | **Video Editing** | MoviePy / FFmpeg | Flexible programmatic video assembly. |
-| **Database** | SQLite | Lightweight, file-based tracking of product/video status. |
-| **Infrastructure** | Docker | Consistent development and deployment environment. |
-| **Orchestration** | compose.yaml | Manage multi-container services (App + Cron/Worker). |
-| **Utility Script** | dc.sh | Standardized wrapper for Docker commands. |
+| **Database** | SQLite | Lightweight tracking of processed products. |
+| **Infrastructure** | Docker | Consistent environment for FFmpeg and dependencies. |
 
 ## 3. Module Decomposition
 
-### 3.1 Niche Registry
-The Niche Registry is a directory-based configuration system located in `config/niches/`. Each niche is defined by a YAML file, allowing for easy expansion without code changes.
+### 3.1 Data Processor
+Parses files provided by the human operator in `data/input/`.
+- **Input:** Excel/CSV exported from Kalodata.
+- **Output:** Validated product objects (Title, Price, Shop, Video Links).
+- **Validation:** Ensures mandatory fields are present and deduplicates against the database.
 
-**Example: `config/niches/fashion.yaml`**
-```yaml
-niche_id: fashion_pilot
-active: true
-schedule: "0 9,15,21 * * *" # 3x per day
-scraper:
-  category: "Women's Fashion"
-  min_sales_30d: 500
-  keywords: ["dress", "skirt", "outfit"]
-ai:
-  tone: "energetic, trendy"
-  language: "id" # Indonesian
-  system_prompt_ref: "prompts/fashion_v1.txt"
-editor:
-  font: "Outfit-Bold"
-  music_style: "lofi-beats"
-  overlay_color: "#FF0055"
-publisher:
-  account_name: "fashion_trends_id"
-  session_path: "sessions/fashion_pilot.json"
-```
+### 3.2 Intelligence Engine (Gemini)
+Transforms product data into persuasive marketing scripts.
+- **Input:** Product metadata + Niche prompts.
+- **Output:** Narrations, Overlay text, and Visual storyboard cues.
 
-### 3.2 Main Runner (Orchestrator)
-The Runner is a stateful service that:
-1. Loads all `active` niches from the Registry.
-2. For each niche, checks the schedule.
-3. Triggers the Pipeline (Scrape -> Script -> Render -> Post) for the specific niche context.
-4. Updates the SQLite database to ensure the same product isn't processed twice across different niches (unless explicitly allowed).
-
-### 3.2 Product Scraper
-Interacts with Kalodata to identify "Hot Products".
-- **Input:** Search criteria from Registry.
-- **Output:** Structured product data (ID, Title, Image URLs, Selling Points).
-
-### 3.3 Intelligence Engine (Gemini)
-Transforms raw product data into persuasive marketing scripts.
-- **Input:** Product data + Niche prompts.
-- **Output:** Text-to-speech (TTS) scripts, Overlay text, and Visual cues.
-
-### 3.4 Video Editor
+### 3.3 Video Editor
 Assembles final video assets.
-- **Input:** Product images/videos + Script + Niche assets.
+- **Input:** Product assets (images/videos) + Script.
 - **Logic:**
-    - Use MoviePy 2.x for high-performance assembly.
-    - Automatic image resizing for 9:16 vertical format.
-    - Dynamic text overlay rendering with ImageMagick.
+    - Automatic 9:16 vertical formatting.
+    - Dynamic text overlays and transitions.
+    - Asset randomization to ensure uniqueness.
 - **Output:** Unique MP4 file in `data/videos/`.
 
-### 3.5 TikTok Publisher
-Handles the final upload and description.
-- **Input:** MP4 + Generated Caption + Hash tags.
-- **Logic:** Automated login/upload flow with human-like interactions.
+### 3.4 Output Generator
+Prepares the "Post Package" for the human operator.
+- **Input:** Generated MP4 + Gemini-generated captions/hashtags.
+- **Output:** A structured folder or summary file that makes manual posting as fast as possible (e.g., `data/output/{date}/{product}/`).
 
 ## 4. Data Architecture
 
 ### 4.1 Schema (SQLite)
-- **`products`**: `id`, `niche_id`, `source_url`, `title`, `price`, `sales_30d`, `image_urls`, `raw_data`, `created_at`
-- **`contents`**: `id`, `product_id`, `script`, `video_path`, `status` (PENDING, READY, POSTED)
-- **`post_history`**: `id`, `content_id`, `tiktok_url`, `views`, `posted_at`
+- **`products`**: `id`, `source_id` (from Kalodata), `title`, `price`, `processed_at`
+- **`contents`**: `id`, `product_id`, `script`, `video_path`, `status` (PENDING, GENERATED, ARCHIVED)
 
-## 5. Security & Safety
-- **Credential Management:** Use `.env` files for API keys and session tokens.
-- **Anti-Spam:**
-    - Dynamic MD5 hashing via slight metadata/frame shifts.
-    - Randomized posting windows.
-    - Varied transition durations.
+## 5. ADRs
 
-## 6. ADRs
-
-### ADR-001: Python Core
+### ADR-005: Semi-Auto Strategy Pivot
 - **Status:** Accepted
-- **Context:** Need for rapid integration with AI and media libraries.
-- **Decision:** Use Python 3.11+.
-
-### ADR-002: Playwright for Scaping/Posting
-- **Status:** Accepted
-- **Context:** TikTok and Kalodata have complex JS-heavy UIs.
-- **Decision:** Use Playwright with stealth-plugin to minimize detection.
-
-### ADR-003: SQLite Tracking
-- **Status:** Accepted
-- **Context:** Need to avoid double-posting and track video performance.
-- **Decision:** Use SQLite for simplicity and local persistence.
-### ADR-004: Dockerization
-- **Status**: Accepted
-- **Context**: Need for consistent environments across development and deployment, especially with complex dependencies like FFmpeg and Playwright.
-- **Decision**: Containerize the application using Docker.
-- **Consequences**: Standardized `dc.sh` command for all operations.
+- **Context:** Fully automated scraping and posting are high-risk for account bans and data extraction complexity.
+- **Decision:** Shift to human-assisted scraping (CSV export) and manual posting.
+- **Consequences:** Removal of `scraper` (Playwright) and `publisher` (Automation) modules in favor of `processor` and `output` modules. Focus shifts to generation speed and video quality.
