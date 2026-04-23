@@ -1,5 +1,6 @@
 import sqlite3
 import os
+import json
 
 
 class Database:
@@ -77,7 +78,8 @@ class Database:
             try:
                 cursor.execute(
                     """
-                    INSERT INTO products (niche_id, source_url, title, price, sales_30d, image_urls, raw_data)
+                    INSERT INTO products
+                    (niche_id, source_url, title, price, sales_30d, image_urls, raw_data)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
@@ -95,3 +97,16 @@ class Database:
             except sqlite3.IntegrityError:
                 # Already exists
                 return None
+
+    def add_content(self, product_id, script_data, status="PENDING"):
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO contents (product_id, script, status)
+                VALUES (?, ?, ?)
+            """,
+                (product_id, json.dumps(script_data), status),
+            )
+            conn.commit()
+            return cursor.lastrowid

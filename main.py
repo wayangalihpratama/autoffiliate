@@ -5,6 +5,7 @@ import json
 from dotenv import load_dotenv
 from src.database import Database
 from src.scraper.kalodata import KalodataScraper
+from src.intelligence.gemini_engine import GeminiEngine
 
 # Configure logging
 logging.basicConfig(
@@ -18,6 +19,7 @@ class AutoffiliateRunner:
         load_dotenv()
         self.db = Database()
         self.scraper = KalodataScraper()
+        self.intelligence = GeminiEngine()
         self.niche_dir = "config/niches"
 
     def run(self):
@@ -43,8 +45,9 @@ class AutoffiliateRunner:
         products = self.scraper.scrape_trending_products(config, limit=5)
         logger.info(f"Scraped {len(products)} products for {niche_id}")
 
-        # Step 2: Save to DB
+        # Step 2: Intelligence & Persistence
         for p in products:
+            # Check if we already have this product and its content
             product_id = self.db.add_product(
                 niche_id=niche_id,
                 source_url=p["source_url"],
@@ -54,10 +57,19 @@ class AutoffiliateRunner:
                 image_urls=p["image_urls"],
                 raw_data=json.dumps(p),
             )
+
             if product_id:
                 logger.info(
                     f"New product saved: {p['title']} (ID: {product_id})"
                 )
+
+                # Generate script via Gemini
+                script_data = self.intelligence.generate_script(p, config)
+                if script_data:
+                    content_id = self.db.add_content(product_id, script_data)
+                    logger.info(
+                        f"Script generated and saved (ID: {content_id})"
+                    )
             else:
                 logger.debug(f"Product already exists: {p['title']}")
 
