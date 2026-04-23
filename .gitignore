@@ -1,2 +1,7 @@
 .agent/
 agent_docs/
+.env
+data/
+sessions/
+__pycache__/
+*.pyc
