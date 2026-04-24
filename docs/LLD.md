@@ -10,7 +10,7 @@ Autoffiliate is a modular Python-based engine designed to automate the video gen
 │   ├── niches/          # YAML files for each niche
 │   └── prompts/         # System instructions for Gemini
 ├── data/
-│   ├── input/           # Human-provided Excel/CSV files from Kalodata
+│   ├── input/           # Human-provided CSV/Excel (TCC, Marketplace, Kalodata)
 │   ├── assets/          # Downloaded/Local product assets
 │   ├── videos/          # Generated ready-to-post videos
 │   └── database.sqlite  # State tracking
@@ -28,7 +28,7 @@ Autoffiliate is a modular Python-based engine designed to automate the video gen
 ```mermaid
 graph TD
     subgraph "Human Operator"
-        Kalodata[Kalodata Export]
+        Marketplace[Free Research - TCC/Marketplace]
         ManualPost[Manual TikTok Upload]
     end
 
@@ -42,7 +42,7 @@ graph TD
 
     Database[(SQLite - State Tracking)]
 
-    Kalodata -->|Excel/CSV| Processor
+    Marketplace -->|Excel/CSV| Processor
     Processor --> AI
     AI --> Editor
     Editor --> OutputGen
@@ -68,7 +68,7 @@ graph TD
 
 ### 3.1 Data Processor
 Parses files provided by the human operator in `data/input/`.
-- **Input:** Excel/CSV exported from Kalodata.
+- **Input:** Excel/CSV from TikTok Shop Marketplace, TCC, or Kalodata.
 - **Output:** Validated product objects (Title, Price, Shop, Video Links).
 - **Validation:** Ensures mandatory fields are present and deduplicates against the database.
 

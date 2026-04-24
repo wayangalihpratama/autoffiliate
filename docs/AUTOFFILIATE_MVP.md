@@ -1,7 +1,7 @@
 # Feature Specification: Autoffiliate Semi-Auto MVP
 
 ## 1. Overview
-Autoffiliate is a semi-automated content management system designed for scaling TikTok Affiliate operations. It leverages human-assisted data sourcing from Kalodata and Gemini 2.0 for creative reasoning to produce high-quality, unique affiliate videos. Posting is handled manually to ensure account safety and optimal engagement.
+Autoffiliate is a semi-automated content management system designed for scaling TikTok Affiliate operations. It leverages human-assisted data sourcing from official TikTok tools (Marketplace/TCC) or Kalodata, and Gemini 2.0 for creative reasoning to produce high-quality, unique affiliate videos. Posting is handled manually to ensure account safety and optimal engagement.
 
 ## 2. Problem Statement
 Fully automated scraping and posting are increasingly vulnerable to bot detection and shadowbans. Manual content creation, however, is too slow for scaling. A semi-auto approach balances safety with efficiency.
@@ -19,14 +19,14 @@ Fully automated scraping and posting are increasingly vulnerable to bot detectio
 ## 5. Functional Requirements (MVP)
 
 ### FR-1: Human-Assisted Data Input (Excel/CSV)
-- **Description:** System must process product data exported from Kalodata by a human.
+- **Description:** System must process product data exported from official TikTok tools or Kalodata by a human.
 - **Priority:** Must Have
 - **Acceptance Criteria:** Successfully parses Excel/CSV files containing product metadata (Name, Price, Commission, Assets, etc.).
 
 ### FR-2: Gemini-Powered Scripting Engine
 - **Description:** Use Gemini 2.0 to generate unique, persuasive scripts for each product in the input file.
 - **Priority:** Must Have
-- **Acceptance Criteria:** Generates unique script variations per product based on Kalodata insights.
+- **Acceptance Criteria:** Generates unique script variations per product based on provided product metadata.
 
 ### FR-3: Multi-Niche Architecture
 - **Description:** Support niche-specific configurations via the `config/niches/` directory.
